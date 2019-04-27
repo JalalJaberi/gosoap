@@ -86,6 +86,16 @@ func (c *Client) initWsdl() {
 	if c.definitionsErr == nil {
 		c.URL = strings.TrimSuffix(c.Definitions.TargetNamespace, "/")
 	}
+	/* fmt.Printf("name: %s, TargetNamespace: %s\r\n", c.Definitions.Name, c.Definitions.TargetNamespace)
+	for index, element := range c.Definitions.Imports {
+		fmt.Printf("imports[%d] -> Namespace: %s, Location: %s\r\n", index, element.Namespace, element.Location)
+	}
+	for index, element := range c.Definitions.Types {
+		fmt.Printf("types[%d] ->\r\n", index)
+		for index2, element2 := range element.XsdSchema {
+			fmt.Printf("\tXsdSchema[%d] -> TargetNamespace: %s, ElementFormDefault: %s\r\n", index2, element2.TargetNamespace, element2.ElementFormDefault)
+		}
+	}*/
 }
 
 func (c *Client) SetWSDL(wsdl string) {
@@ -130,6 +140,7 @@ func (c *Client) Do(req *Request) (res *Response, err error) {
 		Request:    req,
 		SoapAction: c.Definitions.GetSoapActionFromWsdlOperation(req.Method),
 	}
+	//fmt.Printf("SoapAction: %s\r\n", p.SoapAction)
 
 	if p.SoapAction == "" {
 		p.SoapAction = fmt.Sprintf("%s/%s", c.URL, req.Method)
@@ -139,6 +150,8 @@ func (c *Client) Do(req *Request) (res *Response, err error) {
 	if err != nil {
 		return nil, err
 	}
+	// s := string(p.Payload[:])
+	// fmt.Printf("Payload: %s\r\n", s)
 
 	b, err := p.doRequest(c.Definitions.Services[0].Ports[0].SoapAddresses[0].Location)
 	if err != nil {

@@ -13,57 +13,42 @@ go get github.com/tiaguinho/gosoap
 package main
 
 import (
-	"encoding/xml"
-	"log"
-
 	"github.com/tiaguinho/gosoap"
+	"fmt"
 )
 
-// GetIPLocationResponse will hold the Soap response
-type GetIPLocationResponse struct {
-	GetIPLocationResult string `xml:"GetIpLocationResult"`
+type GetGeoIPResponse struct {
+	GetGeoIPResult GetGeoIPResult
 }
 
-// GetIPLocationResult will
-type GetIPLocationResult struct {
-	XMLName xml.Name `xml:"GeoIP"`
-	Country string   `xml:"Country"`
-	State   string   `xml:"State"`
+type GetGeoIPResult struct {
+	ReturnCode        string
+	IP                string
+	ReturnCodeDetails string
+	CountryName       string
+	CountryCode       string
 }
-
-var (
-	r GetIPLocationResponse
-)
 
 func main() {
-	soap, err := gosoap.SoapClient("http://wsgeoip.lavasoft.com/ipservice.asmx?WSDL")
+	soap, err := gosoap.SoapClient("http://www.webservicex.net/geoipservice.asmx?WSDL")
 	if err != nil {
-		log.Fatalf("SoapClient error: %s", err)
+		fmt.Errorf("error not expected: %s", err)
 	}
 
 	params := gosoap.Params{
-		"sIp": "8.8.8.8",
+		"IPAddress": "8.8.8.8",
 	}
 
-	err = soap.Call("GetIpLocation", params)
+	res, err := soap.Call("GetGeoIP", params)
 	if err != nil {
-		log.Fatalf("Call error: %s", err)
+		fmt.Errorf("error in soap call: %s", err)
 	}
 
-	soap.Unmarshal(&r)
+	r := GetGeoIPResponse{}
 
-	// GetIpLocationResult will be a string. We need to parse it to XML
-	result := GetIPLocationResult{}
-	err = xml.Unmarshal([]byte(r.GetIPLocationResult), &result)
-	if err != nil {
-		log.Fatalf("xml.Unmarshal error: %s", err)
+	res.Unmarshal(&r)
+	if r.GetGeoIPResult.CountryCode != "USA" {
+		fmt.Errorf("error: %+v", r)
 	}
-
-	if result.Country != "US" {
-		log.Fatalf("error: %+v", r)
-	}
-
-	log.Println("Country: ", result.Country)
-	log.Println("State: ", result.State)
 }
 ```

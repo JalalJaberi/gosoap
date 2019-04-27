@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"reflect"
+	"strconv"
 )
 
 // MarshalXML envelope the body and encode to xml
@@ -78,9 +79,63 @@ func (tokens *tokenData) recursiveEncode(hm interface{}) {
 		for i := 0; i < v.Len(); i++ {
 			tokens.recursiveEncode(v.Index(i).Interface())
 		}
+	case reflect.Struct:
+		tp := reflect.TypeOf(hm)
+		t := xml.StartElement{
+			Name: xml.Name{
+				Space: "",
+				Local: reflect.TypeOf(hm).Name(),
+			},
+		}
+		tokens.data = append(tokens.data, t)
+		for i := 0; i < v.NumField(); i++ {
+			inner := v.Field(i).Interface()
+			v2 := reflect.ValueOf(inner)
+			switch v2.Kind() {
+			case reflect.String,
+				reflect.Bool,
+				reflect.Int,
+				reflect.Int8,
+				reflect.Int16,
+				reflect.Int32,
+				reflect.Int64,
+				reflect.Uint,
+				reflect.Uint8,
+				reflect.Uint16,
+				reflect.Uint32,
+				reflect.Uint64,
+				reflect.Float32,
+				reflect.Float64:
+				t2 := xml.StartElement{
+					Name: xml.Name{
+						Space: "",
+						Local: tp.Field(i).Name,
+					},
+				}
+				tokens.data = append(tokens.data, t2)
+				tokens.recursiveEncode(inner)
+				tokens.data = append(tokens.data, xml.EndElement{Name: t2.Name})
+			//case reflect
+			default:
+				tokens.recursiveEncode(inner)
+			}
+		}
+		tokens.data = append(tokens.data, xml.EndElement{Name: t.Name})
 	case reflect.String:
-		content := xml.CharData(v.String())
-		tokens.data = append(tokens.data, content)
+		content := v.String()
+		tokens.data = append(tokens.data, xml.CharData(content))
+	case reflect.Bool:
+		content := strconv.FormatBool(v.Bool())
+		tokens.data = append(tokens.data, xml.CharData(content))
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		content := xml.CharData(strconv.FormatInt(v.Int(), 10))
+		tokens.data = append(tokens.data, xml.CharData(content))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		content := xml.CharData(strconv.FormatUint(v.Uint(), 10))
+		tokens.data = append(tokens.data, xml.CharData(content))
+	case reflect.Float32, reflect.Float64:
+		content := fmt.Sprintf("%f", v.Float())
+		tokens.data = append(tokens.data, xml.CharData(content))
 	}
 }
 

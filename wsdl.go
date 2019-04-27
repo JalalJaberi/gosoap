@@ -1,7 +1,9 @@
 package gosoap
 
 import (
+	// "bytes"
 	"encoding/xml"
+	// "fmt"
 	"golang.org/x/net/html/charset"
 	"io"
 	"net/http"
@@ -171,6 +173,12 @@ func getWsdlBody(u string) (reader io.ReadCloser, err error) {
 	if err != nil {
 		return nil, err
 	}
+
+	/*buf := new(bytes.Buffer)
+	buf.ReadFrom(r.Body)
+	newStr := buf.String()
+	fmt.Printf(newStr)*/
+
 	return r.Body, nil
 }
 
