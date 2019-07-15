@@ -150,6 +150,7 @@ func (c *Client) Do(req *Request) (res *Response, err error) {
 	if err != nil {
 		return nil, err
 	}
+
 	// s := string(p.Payload[:])
 	// fmt.Printf("Payload: %s\r\n", s)
 

@@ -14,9 +14,14 @@ type Response struct {
 
 // Unmarshal get the body and unmarshal into the interface
 func (r *Response) Unmarshal(v interface{}) error {
+
+	// fmt.Printf(string(r.Body[:]))
+
 	if len(r.Body) == 0 {
 		return fmt.Errorf("Body is empty")
 	}
+
+	// fmt.Printf("r.Body: %s\r", r.Body)
 
 	var f Fault
 	xml.Unmarshal(r.Body, &f)

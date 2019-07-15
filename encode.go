@@ -77,7 +77,63 @@ func (tokens *tokenData) recursiveEncode(hm interface{}) {
 		}
 	case reflect.Slice:
 		for i := 0; i < v.Len(); i++ {
-			tokens.recursiveEncode(v.Index(i).Interface())
+			inner := v.Index(i).Interface()
+			v2 := reflect.ValueOf(inner)
+			switch v2.Kind() {
+			case reflect.String:
+				t := xml.StartElement{
+					Name: xml.Name{
+						Space: "",
+						Local: "string",
+					},
+				}
+				tokens.data = append(tokens.data, t)
+				tokens.recursiveEncode(inner)
+				tokens.data = append(tokens.data, xml.EndElement{Name: t.Name})
+			case reflect.Bool:
+				t := xml.StartElement{
+					Name: xml.Name{
+						Space: "",
+						Local: "bool",
+					},
+				}
+				tokens.data = append(tokens.data, t)
+				tokens.recursiveEncode(inner)
+				tokens.data = append(tokens.data, xml.EndElement{Name: t.Name})
+			case reflect.Int,
+				reflect.Int8,
+				reflect.Int16,
+				reflect.Int32,
+				reflect.Int64,
+				reflect.Uint,
+				reflect.Uint8,
+				reflect.Uint16,
+				reflect.Uint32,
+				reflect.Uint64:
+				t := xml.StartElement{
+					Name: xml.Name{
+						Space: "",
+						Local: "int",
+					},
+				}
+				tokens.data = append(tokens.data, t)
+				tokens.recursiveEncode(inner)
+				tokens.data = append(tokens.data, xml.EndElement{Name: t.Name})
+			case reflect.Float32,
+				reflect.Float64:
+				t := xml.StartElement{
+					Name: xml.Name{
+						Space: "",
+						Local: "float",
+					},
+				}
+				tokens.data = append(tokens.data, t)
+				tokens.recursiveEncode(inner)
+				tokens.data = append(tokens.data, xml.EndElement{Name: t.Name})
+			//case reflect
+			default:
+				tokens.recursiveEncode(inner)
+			}
 		}
 	case reflect.Struct:
 		tp := reflect.TypeOf(hm)
@@ -91,10 +147,49 @@ func (tokens *tokenData) recursiveEncode(hm interface{}) {
 		for i := 0; i < v.NumField(); i++ {
 			inner := v.Field(i).Interface()
 			v2 := reflect.ValueOf(inner)
+			t2 := xml.StartElement{
+				Name: xml.Name{
+					Space: "",
+					Local: tp.Field(i).Name,
+				},
+			}
+			tokens.data = append(tokens.data, t2)
+			show := true
+			tag := reflect.TypeOf(hm).Field(i).Tag.Get("typeAsTag")
+			if "false" == tag {
+				show = false
+			}
+			var t3 xml.StartElement
 			switch v2.Kind() {
-			case reflect.String,
-				reflect.Bool,
-				reflect.Int,
+			case reflect.String:
+				if show {
+					t3 = xml.StartElement{
+						Name: xml.Name{
+							Space: "",
+							Local: "string",
+						},
+					}
+					tokens.data = append(tokens.data, t3)
+				}
+				tokens.recursiveEncode(inner)
+				if show {
+					tokens.data = append(tokens.data, xml.EndElement{Name: t3.Name})
+				}
+			case reflect.Bool:
+				if show {
+					t3 = xml.StartElement{
+						Name: xml.Name{
+							Space: "",
+							Local: "bool",
+						},
+					}
+					tokens.data = append(tokens.data, t3)
+				}
+				tokens.recursiveEncode(inner)
+				if show {
+					tokens.data = append(tokens.data, xml.EndElement{Name: t3.Name})
+				}
+			case reflect.Int,
 				reflect.Int8,
 				reflect.Int16,
 				reflect.Int32,
@@ -103,22 +198,40 @@ func (tokens *tokenData) recursiveEncode(hm interface{}) {
 				reflect.Uint8,
 				reflect.Uint16,
 				reflect.Uint32,
-				reflect.Uint64,
-				reflect.Float32,
-				reflect.Float64:
-				t2 := xml.StartElement{
-					Name: xml.Name{
-						Space: "",
-						Local: tp.Field(i).Name,
-					},
+				reflect.Uint64:
+				if show {
+					t3 = xml.StartElement{
+						Name: xml.Name{
+							Space: "",
+							Local: "int",
+						},
+					}
+					tokens.data = append(tokens.data, t3)
 				}
-				tokens.data = append(tokens.data, t2)
 				tokens.recursiveEncode(inner)
-				tokens.data = append(tokens.data, xml.EndElement{Name: t2.Name})
+				if show {
+					tokens.data = append(tokens.data, xml.EndElement{Name: t3.Name})
+				}
+			case reflect.Float32,
+				reflect.Float64:
+				if show {
+					t3 = xml.StartElement{
+						Name: xml.Name{
+							Space: "",
+							Local: "float",
+						},
+					}
+					tokens.data = append(tokens.data, t3)
+				}
+				tokens.recursiveEncode(inner)
+				if show {
+					tokens.data = append(tokens.data, xml.EndElement{Name: t3.Name})
+				}
 			//case reflect
 			default:
 				tokens.recursiveEncode(inner)
 			}
+			tokens.data = append(tokens.data, xml.EndElement{Name: t2.Name})
 		}
 		tokens.data = append(tokens.data, xml.EndElement{Name: t.Name})
 	case reflect.String:
